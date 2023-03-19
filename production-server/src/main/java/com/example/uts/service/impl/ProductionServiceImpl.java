@@ -12,8 +12,8 @@ public class ProductionServiceImpl implements ProductionService {
     @Autowired
     private ProductionRepository productionRepository;
     @Override
-    public Optional<BookingJournal> getTicketDetails(Integer id) {
-       return productionRepository.findById(id);
+    public BookingJournal getTicketDetails(Integer id) {
+       return productionRepository.findById(id).orElse(null);
     }
 
     @Override
