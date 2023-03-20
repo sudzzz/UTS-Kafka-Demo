@@ -14,5 +14,6 @@ public interface ReportingRepository extends JpaRepository<BookingJournal,Intege
 
     @Modifying
     @Query("update BookingJournal b set b.sourceStation = ?2,b.destinationStation = ?3,b.numberOfPassengers = ?4,b.amount = ?5,b.bookingStatus = ?6 where b.ticketNumber = ?1")
+    @Transactional
     int updateTicketDetails(String ticketNumber, String sourceStation, String destinationStation, Integer numberOfPassengers, Double amount, BookingStatus bookingStatus);
 }

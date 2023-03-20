@@ -29,9 +29,16 @@ public class StagingServiceImpl implements StagingService {
         if(Objects.isNull(ticketDetails)){
             throw new TicketNotFoundException("Ticket with given id is not present in the database");
         }
-        stagingRepository.updateTicketDetails(ticketNumber,ticketDetails.getSourceStation(),ticketDetails.getDestinationStation(),ticketDetails.getNumberOfPassengers(),ticketDetails.getAmount(),ticketDetails.getBookingStatus());
-        BookingJournal updatedTicket = stagingRepository.findByTicketNumber(ticketNumber);
-        return updatedTicket;
+        ticketDetails.setSourceStation(bookingJournal.getSourceStation());
+        ticketDetails.setDestinationStation(bookingJournal.getDestinationStation());
+        ticketDetails.setNumberOfPassengers(bookingJournal.getNumberOfPassengers());
+        ticketDetails.setAmount(bookingJournal.getAmount());
+        ticketDetails.setTicketNumber(bookingJournal.getTicketNumber());
+        ticketDetails.setJourneyDate(bookingJournal.getJourneyDate());
+        ticketDetails.setLastModified(bookingJournal.getLastModified());
+        ticketDetails.setBookingStatus(bookingJournal.getBookingStatus());
+
+        return stagingRepository.save(ticketDetails);
     }
 
     @Override
@@ -42,7 +49,17 @@ public class StagingServiceImpl implements StagingService {
             BookingJournal bookingJournal = getDataFromTicketEvent(ticketEvent);
             stagingRepository.save(bookingJournal);
         } else {
-            stagingRepository.updateTicketDetails(ticketEvent.getTicketNumber(), ticketEvent.getSourceStation(), ticketEvent.getDestinationStation(), ticketEvent.getNumberOfPassengers(), ticketEvent.getAmount(), ticketEvent.getBookingStatus());
+            ticketDetails.setSourceStation(ticketEvent.getSourceStation());
+            ticketDetails.setDestinationStation(ticketEvent.getDestinationStation());
+            ticketDetails.setNumberOfPassengers(ticketEvent.getNumberOfPassengers());
+            ticketDetails.setAmount(ticketEvent.getAmount());
+            ticketDetails.setTicketNumber(ticketEvent.getTicketNumber());
+            ticketDetails.setJourneyDate(ticketEvent.getJourneyDate());
+            ticketDetails.setLastModified(ticketEvent.getLastModified());
+            ticketDetails.setBookingStatus(ticketEvent.getBookingStatus());
+
+            stagingRepository.save(ticketDetails);
+            //stagingRepository.updateTicketDetails(ticketEvent.getTicketNumber(), ticketEvent.getSourceStation(), ticketEvent.getDestinationStation(), ticketEvent.getNumberOfPassengers(), ticketEvent.getAmount(), ticketEvent.getBookingStatus());
         }
     }
     private BookingJournal getDataFromTicketEvent(TicketEvent ticketEvent){

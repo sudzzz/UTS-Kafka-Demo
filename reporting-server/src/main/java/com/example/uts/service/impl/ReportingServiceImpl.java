@@ -14,6 +14,7 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
@@ -41,8 +42,16 @@ public class ReportingServiceImpl implements ReportingService {
         if(Objects.isNull(ticketDetails)){
             throw new TicketNotFoundException("Ticket with given ticket number is not present in the database");
         }
-        reportingRepository.updateTicketDetails(ticketNumber,bookingJournal.getSourceStation(),bookingJournal.getDestinationStation(),bookingJournal.getNumberOfPassengers(),bookingJournal.getAmount(),bookingJournal.getBookingStatus());
-        BookingJournal updatedTicket = reportingRepository.findByTicketNumber(ticketNumber);
+        ticketDetails.setSourceStation(bookingJournal.getSourceStation());
+        ticketDetails.setDestinationStation(bookingJournal.getDestinationStation());
+        ticketDetails.setNumberOfPassengers(bookingJournal.getNumberOfPassengers());
+        ticketDetails.setAmount(bookingJournal.getAmount());
+        ticketDetails.setTicketNumber(bookingJournal.getTicketNumber());
+        ticketDetails.setJourneyDate(bookingJournal.getJourneyDate());
+        ticketDetails.setLastModified(bookingJournal.getLastModified());
+        ticketDetails.setBookingStatus(bookingJournal.getBookingStatus());
+
+        BookingJournal updatedTicket = reportingRepository.save(ticketDetails);
         TicketEvent ticketEvent = getTicketEvent(updatedTicket);
         sendMessage(ticketEvent);
         return updatedTicket;
@@ -56,8 +65,27 @@ public class ReportingServiceImpl implements ReportingService {
             BookingJournal bookingJournal = getDataFromTicketEvent(ticketEvent);
             reportingRepository.save(bookingJournal);
         } else {
-            reportingRepository.updateTicketDetails(ticketEvent.getTicketNumber(), ticketEvent.getSourceStation(), ticketEvent.getDestinationStation(), ticketEvent.getNumberOfPassengers(), ticketEvent.getAmount(), ticketEvent.getBookingStatus());
+            ticketDetails.setSourceStation(ticketEvent.getSourceStation());
+            ticketDetails.setDestinationStation(ticketEvent.getDestinationStation());
+            ticketDetails.setNumberOfPassengers(ticketEvent.getNumberOfPassengers());
+            ticketDetails.setAmount(ticketEvent.getAmount());
+            ticketDetails.setTicketNumber(ticketEvent.getTicketNumber());
+            ticketDetails.setJourneyDate(ticketEvent.getJourneyDate());
+            ticketDetails.setLastModified(ticketEvent.getLastModified());
+            ticketDetails.setBookingStatus(ticketEvent.getBookingStatus());
+
+            reportingRepository.save(ticketDetails);
+            //reportingRepository.updateTicketDetails(ticketEvent.getTicketNumber(), ticketEvent.getSourceStation(), ticketEvent.getDestinationStation(), ticketEvent.getNumberOfPassengers(), ticketEvent.getAmount(), ticketEvent.getBookingStatus());
         }
+    }
+
+    @Transactional
+    private BookingJournal updateAndReturn(String ticketNumber, BookingJournal bookingJournal){
+        reportingRepository.updateTicketDetails(ticketNumber,bookingJournal.getSourceStation(),bookingJournal.getDestinationStation(),bookingJournal.getNumberOfPassengers(),bookingJournal.getAmount(),bookingJournal.getBookingStatus());
+        BookingJournal updatedTicket = reportingRepository.findByTicketNumber(ticketNumber);
+        TicketEvent ticketEvent = getTicketEvent(updatedTicket);
+        sendMessage(ticketEvent);
+        return updatedTicket;
     }
 
     private BookingJournal getDataFromTicketEvent(TicketEvent ticketEvent){

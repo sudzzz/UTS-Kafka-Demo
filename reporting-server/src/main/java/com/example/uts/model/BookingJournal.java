@@ -3,6 +3,7 @@ package com.example.uts.model;
 import com.example.uts.enums.BookingStatus;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SelectBeforeUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
