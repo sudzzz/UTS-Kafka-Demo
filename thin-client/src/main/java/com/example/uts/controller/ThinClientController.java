@@ -28,7 +28,7 @@ public class ThinClientController {
     }
 
     @PostMapping("/book-ticket")
-    public ResponseEntity<BookingJournal> bookTicket(@RequestBody BookTicketRequest bookTicketRequest) throws JsonProcessingException {
+    public ResponseEntity<BookingJournal> bookTicket(@RequestBody BookTicketRequest bookTicketRequest) {
        return new ResponseEntity<>(thinClientService.saveTicketDetails(bookTicketRequest),HttpStatus.CREATED);
     }
 }

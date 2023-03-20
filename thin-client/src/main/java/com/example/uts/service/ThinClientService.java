@@ -6,5 +6,5 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 public interface ThinClientService {
     BookingJournal getTicketDetails(int id);
-    BookingJournal saveTicketDetails(BookTicketRequest bookTicketRequest) throws JsonProcessingException;
+    BookingJournal saveTicketDetails(BookTicketRequest bookTicketRequest);
 }

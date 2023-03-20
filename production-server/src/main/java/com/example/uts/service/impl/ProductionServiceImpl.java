@@ -1,6 +1,7 @@
 package com.example.uts.service.impl;
 
 import com.example.uts.constants.CommonConstants;
+import com.example.uts.dto.TicketEvent;
 import com.example.uts.enums.BookingStatus;
 import com.example.uts.model.BookingJournal;
 import com.example.uts.repository.ProductionRepository;
@@ -9,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -18,13 +21,10 @@ import java.util.Optional;
 
 @Service
 public class ProductionServiceImpl implements ProductionService {
+    private static final Logger logger = LoggerFactory.getLogger(ProductionServiceImpl.class);
 
     @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
     private ProductionRepository productionRepository;
-    @Autowired
-    private KafkaTemplate<String,String> kafkaTemplate;
 
     @Override
     public BookingJournal getTicketDetails(Integer id) {
@@ -37,23 +37,23 @@ public class ProductionServiceImpl implements ProductionService {
     }
 
     @Override
-    public void saveTicketDetails(String message) throws ParseException {
-        JSONObject data = (JSONObject) new JSONParser().parse(message);
-        BookingJournal bookingJournal = getDataFromJsonObject(data);
+    public void saveTicketDetails(TicketEvent ticketEvent) {
+        logger.info("Ticket Event received in production-server - {}",ticketEvent.toString());
+        BookingJournal bookingJournal = getDataFromTicketEvent(ticketEvent);
         productionRepository.save(bookingJournal);
     }
 
-    private BookingJournal getDataFromJsonObject(JSONObject data){
+    private BookingJournal getDataFromTicketEvent(TicketEvent ticketEvent){
         return BookingJournal.builder()
-                .id((Integer) data.get(CommonConstants.ID))
-                .ticketNumber((String) data.get(CommonConstants.TICKET_NUMBER))
-                .sourceStation((String) data.get(CommonConstants.SOURCE_STATION))
-                .destinationStation((String) data.get(CommonConstants.DESTINATION_STATION))
-                .numberOfPassengers((Integer) data.get(CommonConstants.NUMBER_OF_PASSENGERS))
-                .amount((Double) data.get(CommonConstants.AMOUNT))
-                .journeyDate((Date) data.get(CommonConstants.JOURNEY_DATE))
-                .lastModified((Date) data.get(CommonConstants.LAST_MODIFIED))
-                .bookingStatus(BookingStatus.valueOf((String) data.get(CommonConstants.BOOKING_STATUS)))
+                .id(ticketEvent.getId())
+                .ticketNumber(ticketEvent.getTicketNumber())
+                .sourceStation(ticketEvent.getSourceStation())
+                .destinationStation(ticketEvent.getDestinationStation())
+                .numberOfPassengers(ticketEvent.getNumberOfPassengers())
+                .amount(ticketEvent.getAmount())
+                .journeyDate(ticketEvent.getJourneyDate())
+                .lastModified(ticketEvent.getLastModified())
+                .bookingStatus(ticketEvent.getBookingStatus())
                 .build();
     }
 }
