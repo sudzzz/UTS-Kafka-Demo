@@ -1,15 +1,12 @@
 package com.example.uts.service.impl;
 
-import com.example.uts.constants.CommonConstants;
 import com.example.uts.dto.TicketEvent;
 import com.example.uts.model.BookingJournal;
 import com.example.uts.repository.ThinClientRepository;
 import com.example.uts.request.BookTicketRequest;
 import com.example.uts.service.ThinClientService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,12 +60,12 @@ public class ThinClientServiceImpl implements ThinClientService {
     }
 
     public void sendMessage(TicketEvent ticketEvent) {
-        logger.info("Ticket event --> {}",ticketEvent.toString());
+        logger.info("Ticket event produced for production-server --> {}",ticketEvent.toString());
 
         //create message
         Message<TicketEvent> message = MessageBuilder
                 .withPayload(ticketEvent)
-                .setHeader(KafkaHeaders.TOPIC,CommonConstants.BOOKING_THIN_CLIENT)
+                .setHeader(KafkaHeaders.TOPIC,topic.name())
                 .build();
         kafkaTemplate.send(message);
     }

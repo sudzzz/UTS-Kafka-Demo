@@ -1,11 +1,10 @@
 package com.example.uts.service.impl;
 
-import com.example.uts.constants.CommonConstants;
 import com.example.uts.dto.TicketEvent;
 import com.example.uts.exception.TicketNotFoundException;
 import com.example.uts.model.BookingJournal;
-import com.example.uts.repository.ProductionRepository;
-import com.example.uts.service.ProductionService;
+import com.example.uts.repository.ReportingRepository;
+import com.example.uts.service.ReportingService;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,14 +14,13 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
+
 import java.util.Objects;
 
 @Service
-public class ProductionServiceImpl implements ProductionService {
-    private static final Logger logger = LoggerFactory.getLogger(ProductionServiceImpl.class);
+public class ReportingServiceImpl implements ReportingService {
 
-    @Autowired
-    private ProductionRepository productionRepository;
+    private static final Logger logger = LoggerFactory.getLogger(ReportingServiceImpl.class);
 
     @Autowired
     private NewTopic topic;
@@ -30,29 +28,36 @@ public class ProductionServiceImpl implements ProductionService {
     @Autowired
     private KafkaTemplate<String,TicketEvent> kafkaTemplate;
 
+    @Autowired
+    private ReportingRepository reportingRepository;
     @Override
-    public BookingJournal getTicketDetails(Integer id) {
-       return productionRepository.findById(id).orElse(null);
+    public BookingJournal getTicketDetails(int id) {
+        return reportingRepository.findById(id).orElse(null);
     }
 
     @Override
     public BookingJournal updateTicketDetails(String ticketNumber, BookingJournal bookingJournal) throws TicketNotFoundException {
-        BookingJournal ticket = productionRepository.findByTicketNumber(ticketNumber);
-        if(Objects.isNull(ticket)){
+        BookingJournal ticketDetails = reportingRepository.findByTicketNumber(ticketNumber);
+        if(Objects.isNull(ticketDetails)){
             throw new TicketNotFoundException("Ticket with given ticket number is not present in the database");
         }
-        BookingJournal savedTicket =  productionRepository.save(bookingJournal);
-        TicketEvent ticketEvent = getTicketEvent(savedTicket);
+        reportingRepository.updateTicketDetails(ticketNumber,bookingJournal.getSourceStation(),bookingJournal.getDestinationStation(),bookingJournal.getNumberOfPassengers(),bookingJournal.getAmount(),bookingJournal.getBookingStatus());
+        BookingJournal updatedTicket = reportingRepository.findByTicketNumber(ticketNumber);
+        TicketEvent ticketEvent = getTicketEvent(updatedTicket);
         sendMessage(ticketEvent);
-        return savedTicket;
+        return updatedTicket;
     }
 
     @Override
-    public void saveTicketDetails(TicketEvent ticketEvent) {
-        logger.info("Ticket Event received in production-server - {}",ticketEvent.toString());
-        BookingJournal bookingJournal = getDataFromTicketEvent(ticketEvent);
-        productionRepository.save(bookingJournal);
-        sendMessage(ticketEvent);
+    public void saveTicketDetails(TicketEvent ticketEvent) throws TicketNotFoundException {
+        logger.info("Ticket Event received in reporting-server - {}", ticketEvent.toString());
+        BookingJournal ticketDetails = reportingRepository.findByTicketNumber(ticketEvent.getTicketNumber());
+        if (Objects.isNull(ticketDetails)) {
+            BookingJournal bookingJournal = getDataFromTicketEvent(ticketEvent);
+            reportingRepository.save(bookingJournal);
+        } else {
+            reportingRepository.updateTicketDetails(ticketEvent.getTicketNumber(), ticketEvent.getSourceStation(), ticketEvent.getDestinationStation(), ticketEvent.getNumberOfPassengers(), ticketEvent.getAmount(), ticketEvent.getBookingStatus());
+        }
     }
 
     private BookingJournal getDataFromTicketEvent(TicketEvent ticketEvent){
@@ -84,12 +89,13 @@ public class ProductionServiceImpl implements ProductionService {
     }
 
     private void sendMessage(TicketEvent ticketEvent){
-        logger.info("Ticket event produced for reporting and staging server--> {}",ticketEvent.toString());
+        logger.info("Ticket event produced for staging server--> {}",ticketEvent.toString());
         //create message
         Message<TicketEvent> message = MessageBuilder
                 .withPayload(ticketEvent)
-                .setHeader(KafkaHeaders.TOPIC,topic.name()).build();
+                .setHeader(KafkaHeaders.TOPIC, topic.name()).build();
 
         kafkaTemplate.send(message);
     }
+
 }
